@@ -16,6 +16,8 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.json.JSONArray;
 import org.json.JSONTokener;
 import rx.Observable;
+import rx.Subscriber;
+import rx.functions.Action1;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -71,13 +73,11 @@ public class RXJavaSuggestions extends Application {
         myObservable.map(tB -> tB.getText())
                 .debounce(500, TimeUnit.MILLISECONDS)
                 .map(text -> makeHTTPPOSTRequest(text))
-                .forEach(suggestions -> Platform.runLater(new Runnable() {
-                    @Override
-                    public void run() {
+                .subscribe(suggestions ->  {
                         resultView.getItems().clear();
                         resultView.getItems().addAll(suggestions);
                     }
-                }));
+                );
 
         primaryStage.show();
     }
@@ -85,5 +85,4 @@ public class RXJavaSuggestions extends Application {
     public static void main(String[] args) {
         launch(args);
     }
-
 }
