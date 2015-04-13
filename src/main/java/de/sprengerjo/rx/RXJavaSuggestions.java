@@ -3,8 +3,11 @@ package de.sprengerjo.rx;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.scene.Group;
 import javafx.scene.Scene;
+import javafx.scene.control.Button;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.VBox;
@@ -16,8 +19,9 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.json.JSONArray;
 import org.json.JSONTokener;
 import rx.Observable;
+import rx.Observer;
 import rx.Subscriber;
-import rx.functions.Action1;
+import rx.Subscription;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -28,7 +32,7 @@ import java.util.concurrent.TimeUnit;
 
 public class RXJavaSuggestions extends Application {
 
-    private void init(Stage primaryStage, TextField textBox, ListView<String> resultView) {
+    private void init(Stage primaryStage, TextField textBox, ListView<String> resultView, Button btn) {
         Group root = new Group();
         primaryStage.setScene(new Scene(root));
         // create text box for typing in
@@ -37,7 +41,7 @@ public class RXJavaSuggestions extends Application {
         //create a console for logging key events
         VBox vb = new VBox(10);
         root.getChildren().add(vb);
-        vb.getChildren().addAll(textBox, resultView);
+        vb.getChildren().addAll(textBox, resultView, btn);
     }
 
     public List<String> makeHTTPPOSTRequest(String s) {
@@ -64,21 +68,30 @@ public class RXJavaSuggestions extends Application {
     public void start(Stage primaryStage) throws Exception {
         final TextField textBox = new TextField();
         final ListView<String> resultView = new ListView<>(FXCollections.<String>observableArrayList());
+        Button btn = new Button();
+        btn.setText("World");
 
-        init(primaryStage, textBox, resultView);
+        final Observable<TextField> observable = Observable.create(subscriber -> {
+                textBox.setOnKeyReleased(event -> subscriber.onNext(textBox));
+                btn.setOnAction(event -> {
+                    textBox.setText(textBox.getText() + " "  + btn.getText());
+                    subscriber.onNext(textBox);
+                });
+            });
 
-        final Observable<TextField> myObservable = Observable.create(subscriber ->
-                textBox.setOnKeyReleased(event -> subscriber.onNext(textBox)));
-
-        myObservable.map(tB -> tB.getText())
+        Observable<List<String>> suggestionObservable = observable.map(tB -> tB.getText())
                 .debounce(500, TimeUnit.MILLISECONDS)
-                .map(text -> makeHTTPPOSTRequest(text))
-                .subscribe(suggestions ->  {
-                        resultView.getItems().clear();
-                        resultView.getItems().addAll(suggestions);
-                    }
-                );
+                .map(text -> text.replaceAll("\\s+","%20"))
+                .map(text -> makeHTTPPOSTRequest(text));
 
+        suggestionObservable.forEach(s -> System.out.println(s));
+
+        suggestionObservable.subscribe(suggestions -> Platform.runLater(() -> {
+            resultView.getItems().clear();
+            resultView.getItems().addAll(suggestions);
+        }));
+
+        init(primaryStage, textBox, resultView, btn);
         primaryStage.show();
     }
 

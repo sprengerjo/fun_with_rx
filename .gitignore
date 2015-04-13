@@ -12,3 +12,18 @@
 hs_err_pid*
 /bin/
 /target/
+
+
+# Eclipse
+.classpath
+.project
+.settings/
+
+# Intellij
+.idea/
+*.iml
+*.iws
+
+# Maven
+log/
+target/
