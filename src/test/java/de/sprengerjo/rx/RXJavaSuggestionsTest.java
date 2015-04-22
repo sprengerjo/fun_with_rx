@@ -39,25 +39,6 @@ public class RXJavaSuggestionsTest {
 
     }
 
-    Callable<List<String>> createTask(String value) {
-        return new Callable<List<String>>() {
-            @Override
-            public List<String> call() throws Exception {
-                return backEnd.getSuggestionsSlowly(value);
-            }
-        };
-    }
-
-    Callable<List<String>> createRxTask(String value) {
-        return new Callable<List<String>>() {
-            @Override
-            public List<String> call() throws Exception {
-                return backEnd.getSuggestionsSlowly(value);
-            }
-        };
-    }
-
-
     @After
     public void tearDown() throws Exception {
         System.out.println("time elapsed: " + (System.currentTimeMillis() - start));
