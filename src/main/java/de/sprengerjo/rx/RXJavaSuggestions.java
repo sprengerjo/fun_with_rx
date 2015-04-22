@@ -31,6 +31,8 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 public class RXJavaSuggestions extends Application {
+    BackEnd backEnd = new BackEnd();
+
 
     private void init(Stage primaryStage, TextField textBox, ListView<String> resultView, Button btn) {
         Group root = new Group();
@@ -44,26 +46,6 @@ public class RXJavaSuggestions extends Application {
         vb.getChildren().addAll(textBox, resultView, btn);
     }
 
-    public List<String> makeHTTPPOSTRequest(String s) {
-        HttpClient client = new DefaultHttpClient();
-        HttpPost post = new HttpPost("http://en.wikipedia.org/w/api.php?action=opensearch&search=" + s);
-        try {
-            post.setHeader("Content-Type", "application/json");
-            HttpResponse response = client.execute(post);
-
-            BufferedReader reader = new BufferedReader(new InputStreamReader(response.getEntity().getContent(), "UTF-8"));
-            String json = reader.readLine();
-            JSONTokener tokener = new JSONTokener(json);
-            JSONArray finalResult = new JSONArray(tokener);
-
-            if (finalResult != null) {
-                return Arrays.asList(finalResult.get(1).toString().split(","));
-            }
-        } catch (IOException e) {
-        }
-        return null;
-    }
-
     @Override
     public void start(Stage primaryStage) throws Exception {
         final TextField textBox = new TextField();
@@ -72,17 +54,17 @@ public class RXJavaSuggestions extends Application {
         btn.setText("World");
 
         final Observable<TextField> observable = Observable.create(subscriber -> {
-                textBox.setOnKeyReleased(event -> subscriber.onNext(textBox));
-                btn.setOnAction(event -> {
-                    textBox.setText(textBox.getText() + " "  + btn.getText());
-                    subscriber.onNext(textBox);
-                });
+            textBox.setOnKeyReleased(event -> subscriber.onNext(textBox));
+            btn.setOnAction(event -> {
+                textBox.setText(textBox.getText() + " " + btn.getText());
+                subscriber.onNext(textBox);
             });
+        });
 
         Observable<List<String>> suggestionObservable = observable.map(tB -> tB.getText())
                 .debounce(500, TimeUnit.MILLISECONDS)
-                .map(text -> text.replaceAll("\\s+","%20"))
-                .map(text -> makeHTTPPOSTRequest(text));
+                .map(text -> text.replaceAll("\\s+", "%20"))
+                .map(text -> backEnd.makeHTTPPOSTRequest(text));
 
         suggestionObservable.forEach(s -> System.out.println(s));
 
